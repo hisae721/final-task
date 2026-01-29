@@ -1,0 +1,167 @@
+@startuml Class Diagram
+
+' **使用関係**
+
+TimeScheduler ..> Alarm
+DisplayControl ..> Alarm
+DataManager ..> Alarm
+LocalStorageManager ..> Alarm
+Dialog ..> Alarm
+TimeScheduler --> triggerService
+DisplayControl --> triggerService
+triggerService --> Dialog
+triggerService --> SoundPlayer
+SoundPlayer ..> Sound
+DisplayControl --> IDisplay
+LocalStorageManager --> IDisplay
+Dialog --> IDisplay
+IDisplay <|.. DomDisplay
+DisplayControl --> DataManager
+DataManager --> LocalStorageManager
+
+' **列挙型**
+
+enum Sound {
+    ' 例 ↓↓↓↓↓↓
+    BEEP = "beep.mp3",
+    RING = "ring.mp3",
+    CHIME = "chime.mp3"
+}
+
+' **インターフェース**
+
+interface IDisplay {
+    + renderAdd(alarm: Alarm): void
+    + renderAlarm(alarms: Alarm[]): void
+    + renderDialog(alarm: Alarm): void
+}
+
+' アラーム一覧表示を表示するクラス
+class DomDisplay {
+    - add: HTMLElement;
+    - storage: HTMLDivElement;
+    - dialog: HTMLDivElement;
+    + renderAdd(alarm: Alarm): void
+    + renderAlarm(alarms: Alarm[]): void
+    + renderDialog(alarm: Alarm): void
+    ' { {
+        ' if (alarms.length === 0) { this.showNoAlarmMessage(); } else
+        ' { this.showAlarmList(alarms); }
+    ' }
+}
+
+' **クラス定義**
+
+class Alarm {
+    - hour: number
+    - minute: number
+    - sound: Sound
+    - isOn: boolean
+    + toggleOnOff(): void
+}
+
+' アラーム時刻の監視をするクラス
+class TimeScheduler {
+    ' 内部状態を保持するメンバー変数
+    - alarm: Alarm;
+    ' 鳴動条件も
+    + monitorAlarmTime(alarm: Alarm): void
+}
+
+class triggerService {
+    - dialog: Dialog;
+    - soundPL: SoundPlayer;
+
+    ' アラームの開始・停止指示
+    + startAlarm(alarm: Alarm): void
+    + stopAlarm(alarm: Alarm): void
+
+    ' ダイアログの表示・非表示指示
+    + showDialog(alarm: Alarm): void
+    + hideDialog(): void
+}
+
+' 画面を制御するクラス(アラーム編集) イベントハンドラーと開始・停止指示
+class DisplayControl {
+    - display: IDisplay;
+    - alarm: Alarm;
+    - data: DataManager;
+    - trigger: triggerService;
+
+    ' constructor(display: IDisplay) {
+    ' this.display = display;
+    ' }
+
+    ' 停止ボタン または Enter が押された時のメソッド ↓↓↓↓↓↓
+    + onStopButtonClicked(alarm: Alarm): void
+    + onEnterButtonClicked(alarm: Alarm): void
+    ' 音再生停止とダイアログボックスを非表示にする処理
+    ' {
+        ' SoundPlayer.~Stop , alarmDialogHide(list: Alarm[]): void
+    ' }
+
+    ' アラームを追加ボタンが押された時のメソッド ↓↓↓↓↓↓
+    + onAddButtonClicked(alarm: Alarm): void
+    ' {
+        '     アラームを追加する画面を表示するまでの処理
+    ' }
+
+    ' 選択ボタンが押された時のメソッド ↓↓↓↓↓↓
+    + onSelectButtonClicked(alarms: Alarm[]): void
+    ' {
+        '     チェックボックスの表示／非表示を切替 , 「選択ボタン」を「削除ボタン」へ見た目や機能面で切替
+    ' }
+
+    ' 削除ボタンが押された時のメソッド ↓↓↓↓↓↓
+    + onDeleteButtonClicked(alarm: Alarm): void
+
+    ' アラームを保存ボタンが押された時のメソッド ↓↓↓↓↓↓
+    + onSaveButtonClicked(alarm: Alarm): void
+    ' { AlarmManager.addAlarm(alarm: Alarm): void }
+
+    ' キャンセルボタンが押された時のメソッド ↓↓↓↓↓↓
+    + onCancelButtonClicked(): void
+    ' {
+        ' this.closeAddAlarmScreen();  // 追加画面を閉じる処理
+        '   alarmListView.show();         // 一覧画面を表示する処理
+    ' }
+
+    ' ON/OFF切替ボタンが押された時のメソッド ↓↓↓↓↓↓
+    + onToggleButtonClicked(): void
+}
+
+' データを管理するクラス  データの追加・削除・取得に特化した役割
+class DataManager {
+    - alarms: Alarm[];
+    - storage: LocalStorageManager;
+
+    ' アラームのデータを保存する為のメソッド ↓↓↓↓↓↓
+    + saveAlarm(alarm: Alarm): void
+
+    ' アラームのデータを削除する為のメソッド ↓↓↓↓↓↓
+    + deleteAlarm(alarm: Alarm): void
+}
+
+class LocalStorageManager {
+    - alarms: Alarm[];
+    + saveAlarmData(alarm: Alarm): void
+    + deleteAlarmData(alarm: Alarm): void
+}
+
+' ダイアログボックスを表示・非表示にするクラス
+class Dialog {
+    - alarm: Alarm;
+    + showDialogBox(alarm: Alarm): void
+    + hideDialogBox(): void
+}
+
+' 音の再生・停止を担当するクラス
+class SoundPlayer {
+    ' 「音源オブジェクト」を格納するメンバー変数
+    - sound: Sound | null = null;
+
+    + startSound(sound: Sound): void
+    + stopSound(): void
+}
+
+@enduml
