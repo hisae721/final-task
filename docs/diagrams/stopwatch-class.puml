@@ -1,0 +1,191 @@
+@startuml stopwatch-class-uml
+
+' 列挙型定義
+
+enum StopwatchState {
+    Ready
+    Running
+    Paused
+    Error
+}
+
+enum ButtonType {
+    START
+    PAUSE
+    LAP
+    RESET
+}
+
+' インターフェース定義
+
+interface IStopwatchDisplay {
+    + updateTime(formattedTime: string): void
+    + showLaps(laps: LapTime[]): void
+    + clearLaps(): void
+    + showError(message: string): void
+    + clearError(): void
+    + setButtonState(state: StopwatchState, lapCount: number): void
+    + enableButton(buttonType: ButtonType): void
+    + disableButton(buttonType: ButtonType): void
+    + showButton(buttonType: ButtonType): void
+    + hideButton(buttonType: ButtonType): void
+}
+
+' クラス定義
+
+class StopwatchController {
+    - stateManager: StopwatchStateManager
+    - measurementEngine: MeasurementEngine
+    - lapRecorder: LapRecorder
+    - displayUpdateManager: DisplayUpdateManager
+    - validator: StopwatchValidator
+    - lastClickTime: number
+    + constructor(stateManager: StopwatchStateManager, displayUpdateManager: DisplayUpdateManager, measurementEngine: MeasurementEngine, lapRecorder: LapRecorder, validator: StopwatchValidator)
+    + handleStartClick(): void
+    + handlePauseClick(): void
+    + handleLapClick(): void
+    + handleResetClick(): void
+}
+
+class StopwatchStateManager {
+    - currentState: StopwatchState
+    - display: IStopwatchDisplay
+    - formatter: TimeFormatter
+    - validator: StopwatchValidator
+    + constructor(display: IStopwatchDisplay, formatter: TimeFormatter, validator: StopwatchValidator)    
+    + getCurrentState(): StopwatchState
+    + transitionToReady(): void
+    + transitionToRunning(lapCount: number): void
+    + transitionToPaused(lapCount: number): void
+    + transitionToError(lapCount: number): void
+    + isInState(state: StopwatchState): boolean
+    + canStartMeasurement(): boolean
+    + canPauseMeasurement(): boolean
+    + canRecordLap(): boolean
+    + canReset(): boolean
+    + updateTimeDisplay(milliseconds: number): void
+    + checkAndHandleMaxTime(milliseconds: number, lapCount: number): void
+    + showErrorMessage(message: string): void
+    + clearErrorMessage(): void
+}
+
+class DisplayUpdateManager {
+    - measurementEngine: MeasurementEngine
+    - stateManager: StopwatchStateManager
+    - lapRecorder: LapRecorder
+    - updateIntervalId: number | null
+    + constructor(measurementEngine: MeasurementEngine, stateManager: StopwatchStateManager, lapRecorder: LapRecorder)
+    + startUpdate(): void
+    + stopUpdate(): void
+    + isUpdating(): boolean
+}
+
+class MeasurementEngine {
+    - startTime: number | null
+    - pausedTime: number
+    - isRunning: boolean
+    + start(): void
+    + pause(): number
+    + resume(): void
+    + reset(): void
+    + getElapsedTime(): number
+    + isActive(): boolean
+}
+
+class LapRecorder {
+    - laps: LapTime[]
+    - maxLaps: number
+    - lastTotalTime: number
+    + constructor(maxLaps: number)
+    + recordLap(currentTotalTime: number): boolean
+    + getLaps(): LapTime[]
+    + getLastLapNumber(): number
+    + clear(): void
+    + isFull(): boolean
+    + getLapCount(): number
+    + canRecord(): boolean
+}
+
+class LapTime {
+    + lapNumber: number
+    + lapTime: number
+    + totalTime: number
+    + constructor(lapNumber: number, lapTime: number, totalTime: number)
+}
+
+class TimeFormatter {
+    + format(milliseconds: number): string
+}
+
+class StopwatchValidator {
+    - maxTimeMs: number
+    - minClickInterval: number
+    - maxLaps: number
+    + isOverMaxTime(milliseconds: number): boolean
+    + canRecordLap(lapCount: number): boolean
+    + isClickIntervalValid(lastClickTime: number, currentTime: number): boolean
+}
+
+class DomDisplay {
+    - timeElement: HTMLElement
+    - lapListElement: HTMLElement
+    - startButton: HTMLButtonElement
+    - pauseButton: HTMLButtonElement
+    - lapButton: HTMLButtonElement
+    - resetButton: HTMLButtonElement
+    - errorElement: HTMLElement
+    + updateTime(formattedTime: string): void
+    + showLaps(laps: LapTime[]): void
+    + clearLaps(): void
+    + showError(message: string): void
+    + clearError(): void
+    + setButtonState(state: StopwatchState, lapCount: number): void
+    + enableButton(buttonType: ButtonType): void
+    + disableButton(buttonType: ButtonType): void
+    + showButton(buttonType: ButtonType): void
+    + hideButton(buttonType: ButtonType): void
+}
+
+class Config {
+    + {static} MAX_TIME_MS: number
+    + {static} MIN_CLICK_INTERVAL_MS: number
+    + {static} MAX_LAPS: number
+    + {static} DISPLAY_UPDATE_INTERVAL_MS: number
+    + {static} MAX_HOURS: number
+    + {static} ERROR_MESSAGE_MAX_TIME: string
+    + {static} ERROR_MESSAGE_LAP_FULL: string
+}
+
+' 実装関係
+
+DomDisplay ..|> IStopwatchDisplay
+
+' 使用関係
+
+StopwatchController --> StopwatchStateManager 
+StopwatchController --> MeasurementEngine 
+StopwatchController --> LapRecorder 
+StopwatchController --> DisplayUpdateManager 
+StopwatchController --> StopwatchValidator 
+
+StopwatchStateManager --> IStopwatchDisplay 
+StopwatchStateManager --> StopwatchState 
+StopwatchStateManager --> TimeFormatter
+StopwatchStateManager --> StopwatchValidator 
+
+DisplayUpdateManager --> MeasurementEngine 
+DisplayUpdateManager --> StopwatchStateManager
+DisplayUpdateManager --> LapRecorder
+
+LapRecorder "1" *-- "0..5" LapTime
+
+DomDisplay --> StopwatchState
+DomDisplay --> ButtonType
+
+StopwatchController ..> Config
+StopwatchStateManager ..> Config 
+DisplayUpdateManager ..> Config
+MeasurementEngine ..> Config 
+LapRecorder ..> Config
+TimeFormatter ..> Config
+StopwatchValidator ..> Config
