@@ -2,30 +2,53 @@
 @startuml timer-uml
 
 actor User
-boundary UI
-participant Timer
-participant Ticker
-participant GenericDisplay
+participant TimerControlView
+participant TimerController
+participant CountdownTimer
+participant IntervalTicker
+participant IDisplay
+participant ISoundPlayer
 
-== 時間設定 ==
-User -> UI:時間を設定(hh:mm:ss)
-UI -> UI:hh:mm:ss -> seconds(秒)に変換
-UI -> Timer:setTime(seconds)
+== ① タイマー設定 ==
+User -> TimerControlView : 時間を選択
+TimerControlView -> TimerController : 時間設定完了(seconds)
+TimerController -> CountdownTimer : setTime(seconds)
+TimerController -> IDisplay : updateTime(seconds)
 
-== 開始 ==
-User -> UI:開始ボタン押下
-UI -> Timer:start()
+== ② タイマー開始 ==
+User -> TimerControlView : 開始ボタンを押す
+TimerControlView -> TimerController : onStartClicked()
 
-alt duration == 0
-    Timer ->Display:showError()
-else duration > 0
-    Timer -> Ticker:startTicking()
-    Timer -> Display:formatTime(remainingTime)
+TimerController -> CountdownTimer : start()
+CountdownTimer -> IntervalTicker : startRepeatingTick()
+
+== ③ カウント中 ==
+loop 1秒ごと
+    IntervalTicker -> CountdownTimer : tick()
+    CountdownTimer -> CountdownTimer : 残り時間を1秒減らす
+    CountdownTimer -> CountdownTimer : onTick callbackを実行
+    TimerController -> IDisplay : updateTime(remainingTime)
 end
 
-== カウントダウン ==
-loop every 1 seconds
-    Ticker -> Timer:tick()
-    Timer -> Display:formatTime(remainingTime)
+== ④ 時間到達（通知） ==
+IntervalTicker -> CountdownTimer : tick()
+CountdownTimer -> CountdownTimer : 残り時間を1秒減らす
+
+alt 残り時間が0になった
+    CountdownTimer -> IntervalTicker : stopTicking()
+    CountdownTimer -> CountdownTimer : onFinished callbackを実行
+    TimerController -> TimerController : onTimerFinished()
+    TimerController -> ISoundPlayer : startSound()
+    TimerController -> IDisplay : showTimerFinished("タイマーが終了しました")
+    TimerController -> IDisplay : updateTime(0)
 end
+
+== ⑤ 停止 ==
+User -> TimerControlView : 停止ボタンを押す
+TimerControlView -> TimerController : onStopClicked()
+
+TimerController -> CountdownTimer : stop()
+TimerController -> ISoundPlayer : stopSound()
+TimerController -> IDisplay : updateTime(0)
+
 @enduml
