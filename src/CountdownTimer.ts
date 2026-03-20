@@ -18,6 +18,11 @@ export class CountdownTimer {
         this.ticker = new IntervalTicker;
     }
 
+    reset():void {
+        this.state=TimerState.Ready;
+        this.duration =0;
+    }
+
     /**
      * 終了したら、この処理呼んでね
      * @param callback 
@@ -59,7 +64,7 @@ export class CountdownTimer {
         this.onFinished?.();
     }
 
-    getState():TimerState{
+    public getState():TimerState{
         return this.state;
     }
 }
