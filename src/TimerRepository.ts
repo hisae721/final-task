@@ -48,13 +48,29 @@ export class TimerRepository {
         return timer;
     }
 
+    /**
+     * 今登録されているタイマーの数を返す
+     */
     private countTimers(): number {
-
+        return this.timers.length;
     }
+
+    /**
+     * これ以上タイマー追加できるか判定する
+     */
     private isFull(): boolean {
-
+        if (this.timers.length >= this.MAX_TIMERS) {
+            return true;
+        }
+        return false;
     }
-    private getAll(): TimerSetting[] {
 
+    /**
+     * 今持ってるタイマー一覧を全部返す
+     * @returns 
+     */
+    private getAll(): TimerSetting[] {
+        const timer = [...this.timers];
+        return timer;
     }
 }
