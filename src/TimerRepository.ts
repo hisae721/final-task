@@ -10,6 +10,11 @@ export class TimerRepository {
         this.timers = [];
     }
 
+    /**
+     * タイマーをリポジトリに追加する
+     * @param timer 
+     * @returns 
+     */
     private add(timer: TimerSetting): void {
         if (this.timers.length >= this.MAX_TIMERS) {
             return;
@@ -24,14 +29,25 @@ export class TimerRepository {
      */
     private remove(id: TimerId): void {
         const result = this.timers.filter((timer) => {
-                return id !== timer.id;
+            return id !== timer.id;
         })
         this.timers = result;
     }
 
+    /**
+     * 配列の中から、指定された id と一致する TimerSetting を1件見つけて返す
+     * @param id 
+     */
     private getById(id: TimerId): TimerSetting {
-
+        const timer = this.timers.find((timer) => {
+            return timer.id === id;
+        })
+        if (timer === undefined) {
+            throw new Error("該当するIDが見つかりません");
+        }
+        return timer;
     }
+
     private countTimers(): number {
 
     }
