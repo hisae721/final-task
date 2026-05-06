@@ -1,49 +1,225 @@
-
-
-
 @startuml timer-uml
 
-class Timer {
+class TimerController {
+    -timer:CountdownTimer
+    -display:IDisplay
+    -soundPlayer:ISoundPlayer
+    -timerView: TimerView
+    -timerRepository: TimerRepository
+    +onStartClicked():void
+    +onStopClicked():void
+    +onPauseClicked():void
+    +onResetClicked():void
+    +onSaveClicked():void
+    +onSavedTimerClicked():void
+    +onDeleteSelectedClicked():void
+    +OnUnselectAllClicked():void
+    +onMultipleSelected():void
+    +onTimerFinished():void
+    +onDialogStopClicked():void
+    +onDialogResetClicked():void
+    +onTimeSet(seconds):void
+}
+
+class CountdownTimer {
     -state:TimerState
-    -remainingTime:number
     -duration:number
+    -startTime:number
+    -remainingTime: number
+    -ticker: IntervalTicker
+    -onFinished: () => void
+    -onTick: (number) => void
+    -endTime: number
     +start():void
     +stop():void
     +pause():void
     +reset():void
-    -tick():void
-    +cancel():void
+    +tick():void
+    +initialize():void
+    +resume():void
     +setTime(seconds:number):void
+    +setOnFinished(callback): void
+    +setOnTick(callback): void
+    +finish():void
+    +getState():TimerState
+    +getDuration():number
 }
 
-interface Display {
-    +formatTime(time:number):string
-    +showError():void
+class IntervalTicker {
+    -intervalId:number
+    +startRepeatingTick():void
+    +stopRepeatingTick():void
+}
+
+class SoundPlayer {
+    -audio: HTMLAudioElement
+    +startSound():void
+    +stopSound():void
+}
+
+
+class TimerRepository {
+    -MAX_TIMERS:number
+    -timers:timerSetting[]
+    -currentId: number
+    +add(timer:TimerSetting):void
+    +save(duration: number): void
+    -createId(): TimerId
+    +remove(id:TimerId):void
+    +getById(id:TimerId):TimerSetting
+    +countTimers():number
+    +isFull(): boolean
+    +getAll():TimerSetting[]
+}
+
+class TimerSetting {
+    -id: TimerId
+    -duration: number
+    +getId(): TimerId
+    +getDuration(): number
+}
+
+
+
+interface IDisplay {
+    +updateTime(seconds:number):void
+    +showTimerFinished():void
+    +hideDialog():void
+    +setOnDialogStopClick(handler: ButtonClickHandler):void
 }
 
 class TimerDisplay {
+    -formatter: TimeFormatter
     -element:HTMLElement
-    +formatTime(time:number):string
-    +showError():void
-}
-
-class Ticker {
-    +startTicking():void
-    +stopTicking():void
+    -dialogElement: HTMLElement
+    -dialogStopButton: HTMLElement
+    -dialogResetButton: HTMLElement
+    +showTimerFinished():void
+    +hideDialog(): void
+    +setOnDialogStopClick(handler: ButtonClickHandler): void
+    +setOnDialogResetClick(handler: ButtonClickHandler): void
+    +updateTime(seconds:number):void
+    
 }
 
 enum TimerState {
+    Initial
     Ready
     Running
     Paused
     Finished
-    Error
 }
 
-Timer --> Display
-Timer --> Ticker
-Timer --> TimerState
-Display <|.. TimerDisplay
+class TimerView {
+    -container: HTMLElement
+    -startButton: Button
+    -pauseButton: Button
+    -resetButton: Button
+    -saveButton: Button
+    -deleteSelectedButton: Button
+    -unselectAllButton: Button
+    -onTimerClick(id: string): void
+    -hourSelect: HTMLSelectElement
+    -minuteSelect: HTMLSelectElement
+    -secondSelect: HTMLSelectElement
+    -savedTimerList: HTMLElement
+    -onSavedTimerClick(id: TimerId): void
+    -selectedTimerIds: TimerId[]
+    -onMultipleSelected(): void
+    +getSelectedTimerIds(): TimerId[]
+    +createButtons(): void
+    -appendButtons(): void
+    +setOnTimeChange(handler: (seconds: number) => void): void
+    -initializeTimeOptions(): void
+    -createHourOptions(): void
+    -createMinuteOptions(): void 
+    -createSecondOptions(): void
+    +setOnStartClick(handler: ButtonClickHandler): void
+    +setOnPauseClick(handler: ButtonClickHandler): void
+    +setOnResetClick(handler: ButtonClickHandler): void
+    +setOnSaveClick(handler: ButtonClickHandler): void
+    +setOnSavedTimerClick(handler: (id: TimerId) => void): void
+    +renderSavedTimers(timers: TimerSetting[]): void
+    +updateButtons(state: TimerState): void
+    +setStartButtonText(text:string): void
+    +setOnDeleteSelectedClick(handler: ButtonClickHandler): void
+    +setOnUnselectAllClick(handler: ButtonClickHandler): void
+    +clearSelection(): void
+    +setOnMultipleSelected(handler: () => void): void
+    +setOnTimerClick(handler: (id: string) => void): void
+    +renderTimers(timers: TimerSetting[]): void
+}
 
+
+class Button {
+    -buttonElement: HTMLButtonElement
+    +enable():void
+    +disable():void
+    +hide(): void
+    +show(): void
+    +setOnClick(handler: ButtonClickHandler): void
+    +addClass(className: string): void
+    +getElement(): HTMLButtonElement
+    +appendTo(parent: HTMLElement): void
+    +setText(text: string): void
+}
+
+note right of Button
+    共通クラス
+    (common.pumlに定義)
+end note
+
+
+class ScreenNavigator {
+    -currentScreen:HTMLElement
+    -homeScreen: HTMLElement
+    -timerScreen: HTMLElement
+    -alarmScreen: HTMLElement
+    +switchTo(screen: Screen): void
+    -hideAllScreens(): void
+    -show(screenElement: HTMLElement): void
+}
+
+
+note right of ScreenNavigator
+    共通クラス
+    (common.pumlに定義)
+end note
+
+interface ISoundPlayer {
+    +startSound():void
+    +stopSound():void
+}
+
+note right of ISoundPlayer
+    共通インターフェース
+    (common.pumlに定義)
+end note
+
+class TimeFormatter {
+    +formatSeconds(seconds: number): string
+    +formatHourMinute(hour: number, minute: number): string
+}
+
+note right of TimeFormatter
+    共通クラス
+    (common.pumlに定義)
+end note
+
+
+TimerController --> CountdownTimer
+TimerController --> SoundPlayer
+TimerController --> TimerRepository
+TimerController --> IDisplay
+CountdownTimer --> IntervalTicker
+CountdownTimer --> TimerState
+TimerDisplay ..|> IDisplay
+TimerRepository o-- TimerSetting
+TimerController --> TimerView
+TimerView --> Button
+TimerController --> ScreenNavigator
+SoundPlayer ..|> ISoundPlayer
+TimerController --> ISoundPlayer
+TimerDisplay --> TimeFormatter
 
 @enduml
