@@ -38,13 +38,10 @@ export class CountdownTimer {
         this.remainingTime = 0;
     }
 
-
-
-
     /**
      * スタートした瞬間の時刻を記録して保存
      */
-    start(): void {
+    public start(): void {
         this.startTime = performance.now();
         // 今の時刻 + 設定時間 = 終了予定時刻
         this.endTime = this.startTime + this.duration;
@@ -57,7 +54,7 @@ export class CountdownTimer {
     /**
      * IntervalTicker止めて、状態を変える必要ある
      */
-    stop(): void {
+    public stop(): void {
         if (this.state !== TimerState.Running) {
             return;
         }
@@ -70,7 +67,7 @@ export class CountdownTimer {
     /**
      * 一時停止後の処理
      */
-    pause(): void {
+    public pause(): void {
         console.log("[Timer] pause呼ばれた");
         // 経過時間
         const elapsed = performance.now() - this.startTime;
@@ -90,7 +87,7 @@ export class CountdownTimer {
      * 
      * 主に、カウントダウン中や終了後に「元の設定時間に戻す」ために使用する。
      */
-    reset(): void {
+    public reset(): void {
         console.log("[Timer] reset呼ばれた");
         this.state = TimerState.Ready;
         this.remainingTime = this.duration;
@@ -103,7 +100,7 @@ export class CountdownTimer {
      * 時間を減らす
      * 経過時間と残り時間を計算
      */
-    tick(): void {
+    private tick(): void {
         // 現在時刻を取得
         const now = performance.now();
         // 残り時間を計算
@@ -134,7 +131,7 @@ export class CountdownTimer {
         }
     }
 
-        /**
+    /**
      * タイマーを完全な初期状態（未設定状態）に戻す。
      *
      * ・カウントダウンを停止する
@@ -156,7 +153,7 @@ export class CountdownTimer {
     /**
      * 一時停止後の再開
      */
-    resume(): void {
+    public resume(): void {
         if (this.state !== TimerState.Paused) {
             return;
         }
@@ -167,8 +164,13 @@ export class CountdownTimer {
         this.state = TimerState.Running;
     }
 
-
-
+    /**
+     * タイマーの設定時間を変更する
+     * 
+     * 引数で受け取った秒数をミリ秒に変換して保持する。
+     * 
+     * @param seconds 設定する時間（秒）
+     */
 
     public setTime(seconds: number): void {
         this.duration = seconds * 1000;
@@ -178,7 +180,7 @@ export class CountdownTimer {
      * 終了したら、この処理呼んでね
      * @param callback 
      */
-    setOnFinished(callback: () => void): void {
+    public setOnFinished(callback: () => void): void {
         this.onFinished = callback;
     }
 
@@ -186,14 +188,14 @@ export class CountdownTimer {
      * 1秒経ったら、この処理呼んでね
      * @param callback 
      */
-    setOnTick(callback: (remainingTime: number) => void): void {
+    public setOnTick(callback: (remainingTime: number) => void): void {
         this.onTick = callback;
     }
 
     /**
      * タイマーが終わった時の処理
      */
-    finish(): void {
+    private finish(): void {
         console.log("[Timer] finish 呼ばれた!");
         if (this.state === TimerState.Finished) {
             return;

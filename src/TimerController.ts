@@ -46,7 +46,13 @@ export class TimerController {
         });
     }
 
-
+    /**
+     * 開始ボタン押下時の処理
+     * 
+     * タイマーが一時停止中の場合は再開し、
+     * それ以外の場合はタイマーを開始する。
+     * 処理後、現在の状態に応じてボタン表示を更新する。
+     */
     public onStartClicked = (): void => {
         console.log("[Controller]開始ボタン押された！");
         if (this.timer.getState() === TimerState.Paused) {
@@ -59,12 +65,22 @@ export class TimerController {
     }
 
 
-
+    /**
+     * 停止ボタン押下時の処理
+     * 
+     * タイマーを停止する。
+     */
     public onStopClicked = (): void => {
         this.timer.stop();
     }
 
-
+    /**
+     * 一時停止ボタン押下時の処理
+     * 
+     * タイマーを一時停止し、
+     * 開始ボタンの表示を「再開」に変更する。
+     * また、現在の状態に応じてボタン表示を更新する。
+     */
     public onPauseClicked = (): void => {
         console.log("[Controller] 一時停止ボタン押された");
         this.timer.pause();
@@ -72,14 +88,25 @@ export class TimerController {
         this.timerView.updateButtons(this.timer.getState());
     }
 
-    
 
+    /**
+     * リセットボタン押下時の処理
+     * 
+     * Running または Paused 状態の場合は、
+     * タイマーを設定時間に戻して表示を更新する。
+     * 
+     * Ready 状態の場合は、
+     * タイマーを初期状態に戻し、表示を 00:00:00 に更新する。
+     * 
+     * あわせて開始ボタンの表示を「開始」に戻し、
+     * 現在の状態に応じてボタン表示を更新する。
+     */
     public onResetClicked = (): void => {
         console.log("[Controller] リセットボタン押された");
         // Running中にリセット → 元の設定時間を表示
         // Ready中にリセット → 00:00:00を表示
         const state = this.timer.getState();
-        if (state === TimerState.Running|| state === TimerState.Paused) {
+        if (state === TimerState.Running || state === TimerState.Paused) {
             this.timer.reset();
             this.timerView.setStartButtonText("開始");
             this.timerView.updateButtons(this.timer.getState());
@@ -93,6 +120,12 @@ export class TimerController {
         }
     }
 
+    /**
+     * 保存ボタン押下時の処理
+     * 
+     * 現在設定されているタイマー時間をRepositoryに保存し、
+     * 保存済みタイマー一覧を取得して画面表示を更新する。
+     */
     public onSaveClicked = (): void => {
         console.log("[Controller] 保存ボタン押された");
         const duration = this.timer.getDuration();
@@ -105,6 +138,16 @@ export class TimerController {
         this.timerView.renderSavedTimers(timers);
     }
 
+    /**
+     * 保存済みタイマー選択時の処理
+     * 
+     * 指定されたIDのタイマー設定をRepositoryから取得し、
+     * タイマー本体へ設定する。
+     * また、時間表示を更新し、
+     * ボタン状態をReadyに変更する。
+     * 
+     * @param id 選択されたタイマーのID
+     */
     public onSavedTimerClicked(id: TimerId): void {
         console.log("[View] 保存済みタイマークリック", id);
         console.log("[Controller] 保存済みタイマー選択", id);
@@ -118,6 +161,17 @@ export class TimerController {
         this.timerView.updateButtons(TimerState.Ready);
     }
 
+    /**
+     * 削除ボタン押下時の処理
+     * 
+     * 現在選択されている保存済みタイマーを
+     * Repositoryから削除する。
+     * 
+     * 削除後、保存済みタイマー一覧を再取得し、
+     * 画面表示を更新する。
+     * 
+     * 選択されているタイマーがない場合は何もしない。
+     */
     public onDeleteSelectedClicked = (): void => {
         console.log("[Controller] 削除ボタン押された");
         console.log("[Controller] timerViewの正体", this.timerView);
@@ -134,10 +188,20 @@ export class TimerController {
         this.timerView.renderSavedTimers(all);
     }
 
+    /**
+     * 一括解除ボタン押下時の処理
+     * 
+     * 保存済みタイマーの選択状態をすべて解除する。
+     */
     public OnUnselectAllClicked = (): void => {
         this.timerView.clearSelection();
     }
 
+    /**
+     * 複数のタイマーが選択された時の処理
+     * 
+     * 時間表示を 00:00:00 に更新する。
+     */
     public onMultipleSelected = (): void => {
         this.display.updateTime(0);
     }

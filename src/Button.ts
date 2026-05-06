@@ -10,6 +10,7 @@ export type ButtonClickHandler = (event: MouseEvent) => void;
  * まとめて指定してボタンを作成できる
  */
 export class Button {
+    /** ボタンとして扱うHTMLのbutton要素 */
     private buttonElement: HTMLButtonElement;
 
     constructor(options: ButtonOptions) {

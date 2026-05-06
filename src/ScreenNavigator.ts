@@ -11,13 +11,13 @@ export class ScreenNavigator {
     private currentScreen: HTMLElement;
     /** ホーム画面要素 */
     private homeScreen: HTMLElement;
-     /** タイマー画面要素 */
+    /** タイマー画面要素 */
     private timerScreen: HTMLElement;
     /** アラーム画面要素 */
     private alarmScreen: HTMLElement;
 
-    constructor(homeScreen: HTMLElement,timerScreen: HTMLElement,alarmScreen: HTMLElement) {
-        
+    constructor(homeScreen: HTMLElement, timerScreen: HTMLElement, alarmScreen: HTMLElement) {
+
         this.homeScreen = homeScreen;
         this.timerScreen = timerScreen;
         this.alarmScreen = alarmScreen;
@@ -25,6 +25,14 @@ export class ScreenNavigator {
         this.currentScreen = homeScreen;
     }
 
+    /**
+     * 指定された画面へ切り替える
+     * 
+     * すべての画面を非表示にした後、
+     * 指定された画面のみを表示する。
+     * 
+     * @param screen 表示する画面
+     */
     public switchTo(screen: Screen): void {
         this.hideAllScreens();
 

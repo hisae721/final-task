@@ -1,4 +1,4 @@
-console.log("[main] main.ts 読み込まれた");
+import "./style.css";
 
 import { CountdownTimer } from "./CountdownTimer";
 import { TimerRepository } from "./TimerRepository";
@@ -96,7 +96,7 @@ timerView.updateButtons(countdownTimer.getState());
 display.updateTime(0);
 timerView.updateButtons(TimerState.Initial);
 
-import './style.css';
+
 
 /* ─── ビュー要素を取得 ─── */
 const viewHome = document.getElementById('view-home') as HTMLElement | null;

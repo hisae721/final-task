@@ -1,10 +1,11 @@
-import { CountdownTimer } from "./CountdownTimer"
 /**
- * 一定間隔で合図を出す係
- * CountdownTimerが使うクラス
- * CountdownTimer.start() の中でIntervalTicker に「1秒ごとに動いて」と頼む
- * 1秒経ったらCountdownTimerのtick() 呼ぶ
- * メトロノーム
+ * 一定間隔で処理を繰り返し実行するクラス
+ * 
+ * CountdownTimer から利用され、
+ * 指定されたコールバック関数を一定間隔ごとに呼び出す。
+ * 
+ * タイマー処理そのものは持たず、
+ * 「一定時間ごとに合図を出す役割」を担当する。
  */
 export class IntervalTicker {
     // 今動いている setInterval を止めるためのID

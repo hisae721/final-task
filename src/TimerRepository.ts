@@ -9,8 +9,11 @@ import { type TimerId } from "./types";
  * また、保存できるタイマーの最大数（MAX_TIMERS）を制御する。
  */
 export class TimerRepository {
+    /** 保存できるタイマーの最大件数 */
     private MAX_TIMERS: number;
+    /** 保存済みタイマー一覧 */
     private timers: TimerSetting[];
+    /** 次に作成するタイマーID番号 */
     private currentId: number;
 
     constructor() {
@@ -24,7 +27,7 @@ export class TimerRepository {
      * すでに完成しているTimerSettingを受け取って追加する
      * 追加だけ担当
      * @param timer 
-     * @returns 
+     * @returns
      */
     private add(timer: TimerSetting): void {
         if (this.timers.length >= this.MAX_TIMERS) {

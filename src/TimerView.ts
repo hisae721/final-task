@@ -5,7 +5,6 @@ import { TimerSetting } from "./TimerSetting";
 import { TimeFormatter } from "./TimeFormatter";
 import { TimerId } from "./types";
 
-
 /**
  *  タイマー画面のUI操作を管理するビュークラス。
  *  ボタン操作や時間入力（時・分・秒）の取得・初期化を担当する。
@@ -40,6 +39,11 @@ export class TimerView {
         this.onSavedTimerClick = (id: TimerId) => { };
     }
 
+    /**
+     * 現在選択されているタイマーID一覧を取得する
+     * 
+     * @returns 選択中のタイマーID配列
+     */
     public getSelectedTimerIds(): TimerId[] {
         return this.selectedTimerIds;
     }
@@ -117,7 +121,7 @@ export class TimerView {
      * 各セレクトボックス（時・分・秒）の値から合計秒数を計算し、指定されたハンドラー関数に渡す
      * @param handler 合計秒数（秒）を受け取るコールバック関数
      */
-    setOnTimeChange(handler: (seconds: number) => void): void {
+    public setOnTimeChange(handler: (seconds: number) => void): void {
         const notify = () => {
             const hour = Number(this.hourSelect.value);
             const minute = Number(this.minuteSelect.value);
@@ -135,6 +139,10 @@ export class TimerView {
         this.secondSelect.addEventListener("change", notify);
     }
 
+    /**
+     * 時・分・秒のセレクトボックスの選択肢を初期化する
+     * 時・分・秒それぞれの option 要素を生成する
+     */
     private initializeTimeOptions(): void {
         this.createHourOptions();
         this.createMinuteOptions();
@@ -191,7 +199,7 @@ export class TimerView {
 
     /**
      * 開始ボタンがクリックされたときにhandlerを実行するように登録する
-     * @param handler 
+     * @param handler 開始ボタン押下時に実行されるコールバック関数
      */
     public setOnStartClick(handler: ButtonClickHandler): void {
         this.startButton.setOnClick(handler);
@@ -200,7 +208,7 @@ export class TimerView {
 
     /**
      * 一時停止ボタンが押されたときにhandlerを実行するように登録する
-     * @param handler 
+     * @param handler 一時停止ボタン押下時に実行されるコールバック関数
      */
     public setOnPauseClick(handler: ButtonClickHandler): void {
         this.pauseButton.setOnClick(handler);
@@ -209,7 +217,7 @@ export class TimerView {
 
     /**
      * リセットボタンが押されたときにhandlerを実行するように登録する
-     * @param handler 
+     * @param handler リセットボタン押下時に実行されるコールバック関数
      */
     public setOnResetClick(handler: ButtonClickHandler): void {
         this.resetButton.setOnClick(handler);
@@ -218,7 +226,7 @@ export class TimerView {
 
     /**
      * 保存ボタンが押されたときにhandlerを実行するように登録する
-     * @param handler 
+     * @param handler 保存ボタン押下時に実行されるコールバック関数
      */
     public setOnSaveClick(handler: ButtonClickHandler): void {
         this.saveButton.setOnClick(handler);
@@ -234,7 +242,7 @@ export class TimerView {
      *
      * @param handler タイマー選択時に実行されるコールバック関数
      */
-    setOnSavedTimerClick(handler: (id: TimerId) => void): void {
+    public setOnSavedTimerClick(handler: (id: TimerId) => void): void {
         this.onSavedTimerClick = handler;
     }
 
@@ -247,7 +255,7 @@ export class TimerView {
      * そのタイマーのIDをControllerに通知する。
      * @param timers 表示する保存済みタイマーの配列
      */
-    renderSavedTimers(timers: TimerSetting[]): void {
+    public renderSavedTimers(timers: TimerSetting[]): void {
         console.log("[View] renderSavedTimers 呼ばれた");
         console.log("[View] 受け取ったtimers", timers);
         this.savedTimerList.innerHTML = "";
