@@ -15,7 +15,6 @@ export class SoundPlayer implements ISoundPlayer {
             this.stopSound();
         }
         this.audio.currentTime = 0;
-        this.audio.play();
         this.audio.play().catch((e) => {
             console.log("音再生エラー", e);
         });
