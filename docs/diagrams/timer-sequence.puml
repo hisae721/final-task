@@ -1,0 +1,54 @@
+
+@startuml timer-uml
+
+actor User
+participant TimerView
+participant TimerController
+participant CountdownTimer
+participant IntervalTicker
+participant IDisplay
+participant ISoundPlayer
+
+== ① タイマー設定 ==
+User -> TimerView : 時間を選択
+TimerView -> TimerController : onTimeSet(seconds)
+TimerController -> CountdownTimer : setTime(seconds)
+TimerController -> IDisplay : updateTime(seconds)
+
+== ② タイマー開始 ==
+User -> TimerView : 開始ボタンを押す
+TimerView -> TimerController : onStartClicked()
+
+TimerController -> CountdownTimer : start()
+CountdownTimer -> IntervalTicker : startRepeatingTick()
+
+== ③ カウント中 ==
+loop 1秒ごと
+    IntervalTicker -> CountdownTimer : tick()
+    CountdownTimer -> CountdownTimer : 残り時間を1秒減らす
+    CountdownTimer -> TimerController : onTimerTick(remainingTime)
+    TimerController -> IDisplay : updateTime(remainingTime)
+end
+
+== ④ 時間到達（通知） ==
+IntervalTicker -> CountdownTimer : tick()
+CountdownTimer -> CountdownTimer : now = performance.now()
+CountdownTimer -> CountdownTimer : remaining = endTime - now
+
+alt 残り時間が0になった
+    CountdownTimer -> IntervalTicker : stopRepeatingTick()
+    CountdownTimer -> TimerController : onTimerFinished()
+    TimerController -> ISoundPlayer : startSound()
+    TimerController -> IDisplay : showTimerFinished()
+    TimerController -> IDisplay : updateTime(remainingTime)
+end
+
+== ⑤ 停止 ==
+User -> TimerView : 停止ボタンを押す
+TimerView -> TimerController : onStopClicked()
+
+TimerController -> CountdownTimer : stop()
+TimerController -> ISoundPlayer : stopSound()
+TimerController -> IDisplay : updateTime(remainingTime)
+
+@enduml

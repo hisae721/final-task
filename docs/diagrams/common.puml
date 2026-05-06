@@ -1,0 +1,42 @@
+
+@startuml common-uml
+
+class ScreenNavigator {
+    -currentScreen:HTMLElement
+    +switchTo(screen: Screen): void
+}
+
+interface ISoundPlayer {
+    +startSound():void
+    +stopSound():void
+}
+
+class TimeFormatter {
+    +formatMilliseconds(milliseconds: number): string
+    +formatSeconds(seconds: number): string
+    +formatHourMinute(hour: number, minute: number): string
+}
+
+class Button {
+    +enable():void
+    +disable():void
+    +setOnClick(handler: ButtonClickHandler): void
+    +addClass(className: string): void
+    +getElement(): HTMLButtonElement
+    +appendTo(parent: HTMLElement): void
+}
+
+interface ButtonOptions {
+    text: string;
+    className?: string;
+    disabled?: boolean;
+    onClick?: ButtonClickHandler;
+
+}
+
+
+
+
+
+
+@enduml
