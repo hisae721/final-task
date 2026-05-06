@@ -1,0 +1,500 @@
+@startuml Class Diagram
+
+note as callback
+**メモ**
+-コールバック関数-(IDisplayはUIクラスのみ)
+TimeSchedulerでコールバック関数を呼び、
+AlarmServiceがAlarmDisplayControllerへ通知。
+AlarmDisplayControllerがそれを受けて表示する。
+end note
+
+note as callback2
+① UI: toggle押下
+  ↓
+② Service: toggle()
+  ↓
+③ Service: startSchedule()
+  ↓
+④ TimeScheduler: startMonitoring()
+  ↓
+⑤ 時刻到達 → callback発火
+  ↓
+⑥ Service: handleTimeReached()
+  ↓
+⑦ Service → UI通知（onTimeReached）
+  ↓
+⑧ UI: ダイアログ表示
+end note
+
+' **使用関係**
+
+Alarm *-- AlarmState
+Alarm *-- AlarmTime
+
+AlarmDisplayController --> Button
+AlarmDisplayController --> IDisplay
+AlarmDisplayController --> ManagerService
+AlarmDisplayController --> ExecutionService
+AlarmDisplayController --> ScreenNavigator
+
+AlarmDataManager --> LocalStorageManager
+
+ManagerService --> AlarmList
+ExecutionService --> SoundPlayer
+ExecutionService --> TimeScheduler
+ManagerService --> AlarmDataManager
+
+DomDisplay --> TimeFormatter
+
+IDisplay <|.. DomDisplay
+
+ISoundPlayer <|.. SoundPlayer
+
+' **列挙型**
+
+enum AlarmState {
+    ' アラームOFF
+    DISABLED
+    ' アラームONで待機(=WAITING)
+    ENABLED
+    ' 音が鳴る
+    RINGING
+}
+
+enum ButtonType {
+    ADD
+    EDIT
+    SAVE
+    DELETE
+    CLEAR
+    CANCEL
+}
+
+' **インターフェース**
+
+interface IDisplay {
+    + renderInitial(): void;
+    + renderAdd(onSave: () => void): void
+    + renderRule(massage: string):void
+    + renderAlertDialog(alarm: Alarm): void
+    + renderMissedAlarm(): void;
+    + renderList(alarms: Alarm[], selectedIds: Set<string>)
+}
+
+interface ISoundPlayer {
+    - audio: HTMLAudioElement | null;
+    + startSound(): void
+    + stopSound(): void
+}
+
+note right: 共通インターフェース(common.pumlに定義)
+
+' **クラス定義**
+
+class DuplicateAlarmTimeError {}
+class AlarmLimitExceededError {}
+' class DuplicateAlarmTimeError extends Error {}
+' class AlarmLimitExceededError extends Error {}
+
+class SoundPlayer {
+    - soundPlayer: ISoundPlayer;
+    + startSound(): void
+    + stopSound(): void
+}
+
+' アラーム一覧表示を表示するクラス
+class DomDisplay {
+    - formatter: TimeFormatter;
+    - element: HTMLElement;
+    - list: HTMLDivElement;
+    ' - content = document.getElementById("content") as HTMLElement;
+    + renderInitial(): void;
+    ' { this.content.innerHTML = "<p>アラームはまだありません</p>"; }
+    + renderAdd(onSave: () => void): void
+    + renderRule(massage: string):void
+    + renderAlertDialog(alarm: Alarm): void
+    ' { this.content.innerHTML = `<p>${alarm.time} のアラームです！</p>`; }
+    + renderMissedAlarm(): void;
+    + renderList(alarms: Alarm[], selectedIds: Set<string>)
+}
+
+' 時刻形式
+class TimeFormatter {
+    '  ミリ秒を "HH:MM:SS.ms" 形式にフォーマットする。ストップウォッチ向け
+    + formatMilliSeconds(milliseconds: number): string
+
+    '  秒を "MM:SS" 形式にフォーマットする。タイマー向け
+    + formatSeconds(seconds: number): string
+
+    '  時・分を "HH:MM" 形式にフォーマットする。アラーム向け
+    + formatHourMinute(hour: number, minute: number): string
+    '  { 例: (9, 5) → "09:05" }
+    - format(time: AlarmTime): string
+}
+
+note right: 共通クラス(common.pumlに定義)
+
+' ボタン制御(ボタン用汎用クラス) ⇨ クリックイベントを登録する・受け取るだけ
+class Button {
+    type ButtonClickHandler = () => void;
+    ' constructor(private element: HTMLButtonElement) {}
+    + enabled(): void
+     ' this.buttonElement.disabled = false;
+    + disabled(): void
+     ' this.buttonElement.disabled = true;
+    ' 渡された処理を実行してください的な
+    + setOnClick(handler: ButtonClickHandler): void
+     ' this.element.addEventListener("click", handler);
+    ' 作成したCSSのあるクラスを適用する
+    + addClass(className: string): void
+    ' ボタン要素そのものを取得する
+    + getElement(): HTMLButtonElement
+    ' 指定した親要素にボタンを追加する
+    + appendTo(parent: HTMLElement): void
+}
+
+note right: 共通クラス(common.pumlに定義)
+
+class Alarm {
+    - time: AlarmTime
+    - alarmId: string
+    - state: AlarmState = AlarmState.ENABLED
+    - selected: boolean = false
+    
+    + toggleOnOff(): void
+    ' 汎用化以外での状態管理⇩⇩
+    + isActive(): boolean 
+    ' 状態を「確認する」
+    + isRing(): void
+    ' if (this.state === AlarmState.ENABLED) {
+    '   this.state = AlarmState.Ringing;
+    ' }
+    ' 状態を「変更する」
+    + isRinging(): boolean
+    ' return this.state === AlarmState.RINGING;
+    ' 状態を「確認する」
+    + isStop(): void
+    ' { this.state = AlarmState.Disabled;}
+    + isStopped(): boolean
+    ' return this.state === AlarmState.DISABLED;
+    + isSelected(): boolean 
+    + toggleSelected(): void
+    + getTime(): AlarmTime
+    + getId(): string
+    + getState(): AlarmState
+    + static createAlarm(time: AlarmTime): Alarm
+}
+
+' アラームの集合管理(メモリ上管理)
+' = アラームの一覧を動かす(管理)ため
+class AlarmList {
+    - alarms: Alarm[];
+    - readonly MAX_SET_LIMIT = 5
+    + isAlarmSetLimit(): boolean
+    + isAlarmDuplicate(time: AlarmTime): boolean
+    + stop(id: string): void
+        ' const alarm = this.getFindAlarm(id);
+        ' alarm.isStop();
+    + addAlarm(alarm: Alarm): Result<void, AlarmViolationType>
+    + remove(id :string): void
+    ' 削除処理
+    ' this.listeners.forEach(l => l(id));
+
+    ' -? onRemoved(listener: (id: string) => void) {
+    ' this.listeners.push(listener);
+    ' }
+
+    ' 「main.ts」alarmList.onRemoved(id => scheduler.cancel(id));
+    + getAll(): Alarm[]
+
+    + setAll(alarms: Alarm[]): void
+    ' アラームの状態変更
+    + changeState(now: AlarmTime): AlarmRangEvent[] 
+    ' const events: AlarmRangEvent[] = [];
+    ' for (const alarm of this.alarms) 
+    '     if (alarm.getTime().equals(now)) {
+    '     alarm.isRing(); // ← 状態変更はここ
+    '     events.push(
+    '         new AlarmRangEvent(alarm.getId(), now)
+    '      );
+    '     }
+    '   }
+    '  return events;
+    ' }
+
+    + findById(id: string): Alarm | undefined
+    ' 編集を保存する
+    + editSaveAlarm(time: AlarmTime, id: string): void
+        ' ーーー例外エラーverーーー
+        ' const target = this.getFindAlarm(id);
+        ' // 自分以外で重複チェック
+        ' const exists = this.alarms.some(a =>
+        '     a.getId() !== id &&
+        '     a.getTime().equals(time)
+        ' );
+        ' if (exists) {
+        '     throw new DuplicateAlarmTimeError();
+        ' }
+        ' target.changeTime(time);
+        ' ーーーResult型ーーー
+        ' const target = this.getFindAlarm(id);
+        ' // 自分以外で重複チェック
+        ' const exists = this.alarms.some(a =>
+        '     a.getId() !== id &&
+        '     a.getTime().equals(time)
+        ' );
+        ' if (exists) {
+        '     return { ok: false, error: new DuplicateAlarmTimeError() };
+        ' }
+        ' target.changeTime(time);
+        ' return { ok: true, value: undefined };
+    ' - validateLimit(): void
+        ' ーーー例外エラーverーーー
+        ' if (this.alarms.length >= 5) {
+        '   throw new AlarmLimitExceededError();
+        ' }
+        ' ーーーResult型ーーー
+        ' if (this.alarms.length >= 5) {
+        '     return { ok: false, error: new AlarmLimitExceededError() };
+        ' }
+    ' - validateDuplicate(time: AlarmTime): void
+        ' ーーー例外エラーverーーー
+        ' const exists = this.alarms.some(a =>
+        '   a.getTime().equals(time)
+        ' );
+        ' if (exists) {
+        '   throw new DuplicateAlarmTimeError();
+        ' }
+        ' ーーーResult型ーーー
+        ' const exists = this.alarms.some(a =>
+        '     a.getTime().equals(time)
+        ' );
+        ' if (exists) {
+        '     return { ok: false, error: new DuplicateAlarmTimeError() };
+        ' }
+        ' this.alarms.push(alarm);
+        ' return { ok: true, value: undefined };
+
+        }
+
+' ValueObject
+' 中身の値が同じなら同じものとして扱う(値そのもの) → 参照された値を！例)07:30 と 07:30 は同じ
+class AlarmTime {
+    ' public readonly
+    ' ① 値は外から参照できる必要がある  
+    ' ② でも変更はさせない  
+    constructor(public readonly hour: number, public readonly minute: number)
+    + equals(other: AlarmTime): boolean
+}
+
+' 画面の表示切替⇨共通クラス
+class ScreenNavigator {
+    - currentScreen: HTMLElement;
+    + switchTo(screen: Screen): void
+}
+
+note right: 共通クラス(common.pumlに定義)
+
+' アラームのロジック処理クラス
+class ManagerService {
+    - alarmList: AlarmList,
+    - dataManager: AlarmDataManager,
+    
+    ' -----Alarm-----
+    + toggle(id: Alarm): void
+
+    ' -----DataManager・AlarmList-----
+    + initialLoad(): void
+    ' 過去時刻の未処理アラーム判定メソッド と 起動時に通知
+    + checkMissedAlarms(): void
+    ' - this.dataManager.loadAll(): Alarm[]
+    ' - 通知メソッド
+    + deleteMany(id: string[]): void
+    + canAddAlarm(): boolean
+    + editAlarm(): void
+    + saveAlarm(time: AlarmTime): Result<void, AlarmViolationType>
+    + getAlarms(): Alarm[]
+
+
+    ' 全件削除
+    ' + resetAlarm(): void
+    ' - resetAll(): Alarm[]
+
+    ' １件削除
+    ' + deleteAlarm(id: string): void
+    ' this.alarmList.remove(id);
+    ' this.dataManager.delete(id); 
+    ' this.dataManager.saveAll(this.alarmList.getAll());
+    ' 追加ボタンが押下されたよ！
+}
+
+class ExecutionService {
+    ' 複数アラームのタイマー管理
+    ' - schedulerMap<string, TimeScheduler>
+    - scheduler: TimeScheduler,
+    - sound: SoundPlayer,
+    - onTimeReached: (alarm: Alarm) => void
+    ' { alarm.toggleOnOff();        // 状態変更
+    '   this.dataManager.saveAll(this.getAllAlarms()); // 永続化
+    '   this.onTimeReached(alarm); } ← ここで鳴る + UI通知
+
+    + setListener(listener: () => void)
+    ' this.onTimeReached = lesterner;
+    - handleTimeReached()
+    ' this.onTimeReached;
+
+    ' -----TimeScheduler-----
+    ' スケジューラ開始
+    + startSchedule(): void
+    + stopSchedule(): void
+
+    ' -----SoundPlayer-----
+    ' 音の再生・停止指示
+    + startAlarm(now: AlarmTime): void 
+        ' ⬇️鳴ったアラームある？
+        ' const events = this.alarmList.changeState(now);
+        ' ⬇全てのアラームをループで確認
+        ' for (const event of events) {
+        '     this.handle(event);
+        '   }
+        ' }
+        ' ⬇1件でもあれば音鳴らす的な
+        ' private handle(event: AlarmRangEvent): void {
+        '  this.soundPlayer.play();
+        ' }
+    + stopAlarm(): void
+    ' { this.sound.stopSound();}
+}
+
+note right #LightGreen: Facadeパターン(神クラスになっていた)
+
+' 「何が起きたか」だけを表すクラス(イベントデータ)どのアラームが・いつなったか「ServiceとList」
+' eventがあると、処理を後から自由に追加できる(拡張性)今回の場合、「音を鳴らす」のと「ダイアログを表示」
+class AlarmRangEvent {
+    + constructor(alarmId: string, time: AlarmTime) 
+    ' public readonly alarmId: string,
+    ' public readonly time: AlarmTime,
+}
+
+' アラーム時刻の監視をするクラス
+class TimeScheduler {
+    ' 内部状態を保持するメンバー変数
+    ' - alarm: Alarm;
+    ' - timerId: number | null = null;
+    ' アラームIDごとにタイマーを管理する箱
+    - schedulerMap<string, number>
+    ' 鳴動条件も
+    ' + monitorAlarmTime(alarm: Alarm): void
+
+    + startMonitoring(alarm: Alarm, callback: (alarm: Alarm) => void): void
+    ' {
+    ' toggleボタンがONになると、設定時刻までの時刻を計算開始するメソッド
+    ' // setTimeoutなど
+    ' }
+    + stopMonitoring(alarm: Alarm): void
+    ' toggleボタンがOFFになると、計算停止するメソッド
+    ' 鳴動開始時刻になると、計算停止するメソッド
+    ' // clearTimeoutなど
+    ' }
+}
+
+' 画面を制御するクラス(アラーム編集) イベントハンドラーと開始・停止指示
+class AlarmDisplayController {
+    - buttons = new Map<ButtonType, Button>();
+    - selectedIds = new Set<string>();
+
+    constructor⇩
+    - addDisplay: IAddDisplay,
+    - listDisplay: IListDisplay,
+    - ruleDisplay: IRuleDisplay,
+    - navigator: ScreenNavigator,
+    - managerService: ManagerServiceOne & ManagerServiceTwo,
+    - executionService: ExecutionServiceOne,
+    ' - setListener(() => this.onTimeReached()),
+
+    - onTimeReached()
+    ' this.display.renderAlertDialog(alarm: Alarm): void
+
+    - onTimerButtonClicked(): void
+    
+    ' 起動時処理 = 通知はUIがするので、「ボタン押下後処理も起動」もUIで行うため
+    + init(): void
+    ' クリック処理を登録する
+    + registerButton(type: ButtonType, button: Button): void
+
+    - onButtonClicked(type: ButtonType): void
+    - onRowClicked(id: string): void
+    - onToggleClicked(id: string): void
+
+    ' 編集ボタンが押された時のメソッド ↓↓↓↓↓↓
+    ' - onEditButtonClicked(id: Alarm): void
+        ' ーーー例外エラーverーーー
+        ' try {
+        ' alarmService.edit(...);
+        ' } catch (e) {
+        ' if (e instanceof DuplicateAlarmTimeError) {
+        ' display.renderRule("同時刻は設定できません");
+        ' }
+        ' if (e instanceof AlarmLimitExceededError) {
+        ' display.renderRule("5件までです"); ←これは不要？
+        ' }
+        ' ーーーResult型ーーー
+        ' const result = service.edit(...);
+        ' if (!result.ok) {
+        ' if (result.error instanceof DuplicateAlarmTimeError) {
+        ' display.renderRule("同時刻は設定できません");
+        ' }
+        ' if (result.error instanceof AlarmLimitExceededError) {
+        ' display.renderRule("アラームは5件までです"); ←これは不要？
+        ' }
+        ' }
+
+    ' [ Commandパターン ]
+    ' constructor(buttons: Record<ButtonType, Button>) {
+    ' this.buttons = {
+    '   [ButtonType.STOP]: () => this.stop(),
+    '   [ButtonType.EDIT]: () => this.edit(),
+    '   [ButtonType.DELETE]: () => this.delete(),
+    '   [ButtonType.TOGGLE]: () => this.toggle(),
+    ' };
+
+    ' Object.entries(buttons).forEach(([type, button]) => {
+    '   button.setOnClick(this.buttons[type as ButtonType]);
+    ' });
+}
+
+' note right #LightGreen: ボタン押下時の分岐方法はSwitchではなくCommandパターンでもアリかも。
+
+' データの追加・保存・削除・取得に特化した役割
+class AlarmDataManager {
+    - storage: LocalStorageManager;
+
+    ' アラームのデータを保存する為(重複禁止や最大件数も)のメソッド ↓↓↓↓↓↓
+    + saveAll(alarms: Alarm[]): void
+    + loadAll(): Alarm[]
+
+    ' アラームのデータを全件削除する為のメソッド ↓↓↓↓↓↓
+    + resetAll(): Alarm[]
+    ' 下記１行は保存前の各処理⇩⇩
+    ' - this.alarms = [];
+    ' - this.persistToStorage();
+    ' アラームのデータを１件削除する為のメソッド ↓↓↓↓↓↓
+    + delete(id: string): void
+    ' { 下記１行は保存前の各処理⇩⇩
+    ' - alarms.filter()
+    ' 丸ごと上書き保存 ⇩⇩⇩
+    ' - this.persistToStorage()
+    ' }
+
+    ' 永続的に保存する 共通メソッド 
+    ' - persistToStorage(): void
+    ' { this.storage.saveAlarmData(this.alarms)}
+}
+
+' 「保存」と「読み取り」のみの役割(永続化管理)
+class LocalStorageManager {
+    + saveAlarmData(key: string, data: string): void
+    + loadAlarmData(key: string): string | null
+}
+
+@enduml

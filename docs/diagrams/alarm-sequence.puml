@@ -1,0 +1,67 @@
+@startuml sequence diagram
+
+skinparam actorStyle awesome
+actor User
+
+group 追加フロー
+
+User -> "UI(Button)": ①"追加ボタン" 押下
+"UI(Button)" -> DisplayControl: ②"追加ボタン" 押されたよ
+DisplayControl -> DataManager: ③onAddButtonClicked(alarm: Alarm)
+DataManager -> IDisplay: ④addAlarm(alarm: Alarm)
+IDisplay -> "UI(Button)": ⑤"追加画面"renderAlarm(alarms: Alarm[])
+User -> "UI(Button)": ⑥"保存ボタン" 押下
+"UI(Button)" -> DisplayControl: ⑦"保存ボタン"押されたよ
+DisplayControl -> DataManager: ⑧onSaveButtonClicked(alarm: Alarm)
+DataManager -> LocalStorageManager: ⑨saveAlarmData(alarm: Alarm)
+LocalStorageManager -> IDisplay: ①⓪"画面更新"renderAdd(alarm: Alarm)
+
+end
+
+group 削除フロー
+
+User -> "UI(Button)":①"削除ボタン" 押下
+"UI(Button)" -> DisplayControl: ②"削除ボタン" 押されたよ
+DisplayControl -> DataManager: ③onDeleteButtonClicked(alarm: Alarm)
+DataManager -> LocalStorageManager: ④deleteAlarmData(alarm: Alarm)
+LocalStorageManager -> IDisplay: ⑤"画面更新"renderAlarm(alarms: Alarm[])
+
+end
+
+group 停止フロー
+
+User -> "UI(Button)": ①"停止ボタン" 押下
+"UI(Button)" -> DisplayControl: ②"停止ボタン"押されたよ
+DisplayControl -> triggerService: ③onStopButtonClicked(alarm: Alarm)
+triggerService -> SoundPlayer: ④stopAlarm(alarm: Alarm)
+SoundPlayer --> SoundPlayer: ⑤stopSound()
+triggerService -> Dialog: ④hideDialog()
+Dialog --> Dialog: ⑤hideDialogBox()
+Dialog -> IDisplay: ⑥"画面更新"renderAlarm(alarms: Alarm[])
+
+end
+
+group ON/OFF切替フロー
+
+User -> "UI(Button)": ①"ON/OFF切替ボタン" 押下
+"UI(Button)" -> DisplayControl: ②"ON/OFF切替ボタン"押されたよ
+DisplayControl --> DisplayControl: ③onToggleButtonClicked()
+DisplayControl -> Alarm: ④"isOn: boolean"取得
+Alarm -> DisplayControl: ⑤toggleOnOff()
+DisplayControl -> IDisplay: ⑥"画面更新"renderAlarm(alarms: Alarm[])
+
+end
+
+group 鳴動フロー
+
+TimeScheduler -> triggerService: ①monitorAlarmTime(alarm: Alarm): void
+triggerService -> SoundPlayer: ②startAlarm(alarm: Alarm)
+SoundPlayer --> SoundPlayer: ③startSound(sound: Sound)
+triggerService -> Dialog: ②showDialog()
+Dialog --> Dialog: ③showDialogBox(alarm: Alarm)
+Dialog -> IDisplay: ④"画面更新"renderDialog(alarm: Alarm)
+
+end
+
+
+@enduml
