@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="タイマー・アラーム・ストップウォッチを備えた時間管理アプリ。業務の効率的な時間管理をサポートします。" />
+    <title>時間管理アプリ</title>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+
+<body>
+    <div id="app">
+
+        <!-- =============================================
+           初期画面 (Home View)
+           TypeScript で data-view="home" を参照し
+           表示/非表示を切り替える
+      ============================================= -->
+        <main id="view-home" class="view view-home" aria-label="ホーム画面">
+            <div class="home-container">
+                <h1 class="home-title">時間管理アプリ</h1>
+
+                <nav class="home-nav" aria-label="機能選択">
+                    <ul class="home-menu" role="list">
+                        <li>
+                            <button id="btn-go-timer" class="home-menu-btn" type="button" data-target="timer"
+                                aria-label="タイマー画面へ移動">
+                                タイマー
+                            </button>
+                        </li>
+                        <li>
+                            <button id="btn-go-alarm" class="home-menu-btn" type="button" data-target="alarm"
+                                aria-label="アラーム画面へ移動">
+                                アラーム
+                            </button>
+                        </li>
+                        <li>
+                            <button id="btn-go-stopwatch" class="home-menu-btn" type="button" data-target="stopwatch"
+                                aria-label="ストップウォッチ画面へ移動">
+                                ストップウォッチ
+                            </button>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </main>
+
+        <!-- タイマー初期画面 -->
+        <main id="timer-container" class="view-hidden">
+            <header class="timer-header">
+                <nav class="timer-nav">
+                    <ul class="timer-nav-list">
+                        <li>
+                            <a class="timer-nav-link" data-target="timer" href="#">
+                                タイマー
+                            </a>
+                        </li>
+                        <li>
+                            <a class="timer-nav-link" data-target="stopwatch" href="#">
+                                ストップウォッチ
+                            </a>
+                        </li>
+                        <li>
+                            <a class="timer-nav-link" data-target="alarm" href="#">
+                                アラーム
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </header>
+            <!-- メインコンテンツ -->
+            <div class="timer-content">
+                <!-- 画面タイトル -->
+                <p class="timer-title">タイマー</p>
+                <!-- 経過時間表示エリア -->
+                <div id="timer-display">00:00:00</div>
+                <!-- 終了通知ダイアログボックスエリア -->
+                <div id="timer-dialog" class="hidden">
+                    <div class="timer-dialog-box">
+                        <p class="timer-dialog-message">タイマーが終了しました</p>
+                        <div class="timer-dialog-buttons">
+                            <button id="dialog-stop-button" class="timer-dialog-button">停止</button>
+                            <button id="dialog-reset-button" class="timer-dialog-button">リセット</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 時・分・秒の入力エリア -->
+                <div id="timer-input-group">
+                    <div class="timer-input-item">
+                        <label for="timer-hour">時</label>
+                        <select id="timer-hour" name="hour"></select>
+                    </div>
+
+                    <div class="timer-input-item">
+                        <label for="timer-minute">分</label>
+                        <select id="timer-minute" name="minute"></select>
+                    </div>
+
+                    <div class="timer-input-item">
+                        <label for="timer-second">秒</label>
+                        <select id="timer-second" name="second"></select>
+                    </div>
+
+                </div>
+
+                <!-- ボタンはtsで作る -->
+                <div id="timer-controls"></div>
+                <div class="timer-list-container">
+                <div id="timer-actions">
+                    <p id="saved-timer-title">タイマー一覧</p>
+                    <div class="timer-action-buttons">
+                    <div id="timer-save"></div>
+                    <div id="timer-delete"></div>
+                    <div id="timer-select"></div>
+                    </div>
+                </div>
+
+                <ul id="saved-timer-list"></ul>
+                </div>
+            </div>
+
+
+        </main>
+
+
+        <!-- アラーム画面 -->
+        <main id="alarm-container" class="view-hidden">
+            <header class="alarm-header">
+                <nav class="alarm-nav">
+                    <ul class="alarm-nav-list">
+                        <li>
+                            <a class="alarm-nav-link" data-target="timer" href="#">
+                                タイマー
+                            </a>
+                        </li>
+                        <li>
+                            <a class="alarm-nav-link" data-target="alarm" href="#">
+                                アラーム
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </header>
+
+            <div class="alarm-content">
+                <p class="alarm-title">アラーム</p>
+
+                <!-- 仮の表示 -->
+                <div id="alarm-display">未実装</div>
+            </div>
+        </main>
+
+    </div><!-- /#app -->
+
+    <script type="module" src="/src/main.ts"></script>
+</body>
+
+</html>
