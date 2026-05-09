@@ -39,6 +39,7 @@ export class Button {
      */
     public enable(): void {
         this.buttonElement.disabled = false;
+        this.removeClass("disabled");
     }
 
     /**
@@ -46,14 +47,7 @@ export class Button {
      */
     public disable(): void {
         this.buttonElement.disabled = true;
-    }
-
-    public hide(): void {
-        this.buttonElement.classList.add("hidden");
-    }
-
-    public show(): void {
-        this.buttonElement.classList.remove("hidden");
+        this.addClass("disabled");
     }
 
     /**
@@ -70,6 +64,14 @@ export class Button {
      */
     private addClass(className: string): void {
         this.buttonElement.classList.add(className);
+    }
+
+    /**
+     * クラス名を削除するメソッド
+     * @param className
+     */
+    private removeClass(className: string): void {
+        this.buttonElement.classList.remove(className);
     }
 
     /**
@@ -93,5 +95,19 @@ export class Button {
      */
     public setText(text: string): void {
         this.buttonElement.textContent = text;
+    }
+
+    /**
+     * ボタンを非表示にする
+     */
+    public hide(): void {
+        this.buttonElement.classList.add("hidden");
+    }
+
+    /**
+     * ボタンを表示する
+     */
+    public show(): void {
+        this.buttonElement.classList.remove("hidden");
     }
 }
