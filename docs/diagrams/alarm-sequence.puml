@@ -2,66 +2,292 @@
 
 skinparam actorStyle awesome
 actor User
+boundary UI
+participant AlarmDisplayController as Controller
+participant AlarmDataManager as Data
+participant LocalStorageManager as LocalStorage
+participant SoundPlayer as Sound
+participant ManagerService as MService
+participant ExecutionService as EService
+participant AlarmList as List
+participant TimeScheduler as Scheduler
+participant AlarmLimitExceededViolation as LimitViolation
+participant DuplicateAlarmTimeViolation as DuplicateViolation
 
-group 追加フロー
+== 追加フロー ==
 
-User -> "UI(Button)": ①"追加ボタン" 押下
-"UI(Button)" -> DisplayControl: ②"追加ボタン" 押されたよ
-DisplayControl -> DataManager: ③onAddButtonClicked(alarm: Alarm)
-DataManager -> IDisplay: ④addAlarm(alarm: Alarm)
-IDisplay -> "UI(Button)": ⑤"追加画面"renderAlarm(alarms: Alarm[])
-User -> "UI(Button)": ⑥"保存ボタン" 押下
-"UI(Button)" -> DisplayControl: ⑦"保存ボタン"押されたよ
-DisplayControl -> DataManager: ⑧onSaveButtonClicked(alarm: Alarm)
-DataManager -> LocalStorageManager: ⑨saveAlarmData(alarm: Alarm)
-LocalStorageManager -> IDisplay: ①⓪"画面更新"renderAdd(alarm: Alarm)
+User -> UI: "追加ボタン" 押下
+UI -> Controller: onButtonClicked(type: ButtonType): void
+note right
+case Buttons.ADD
+※アラームが既に5件ある場合、「アラームを追加+」ボタンは押下できない
+※その判別はアプリ起動時に状態管理している「updateButtonState(): void」
+end note
+Controller -> MService: canAddAlarm(): boolean
+note right
+AlarmListの「設定可能件数かどうかの判別を「boolean」で返す処理」を呼ぶ
+end note
+MService -> List: isAlarmSetLimit(): boolean
+List -> List: メンバー変数で①アラームの配列 と ②設定可能件数上限 を持つ
+List --> MService: "4件以下"という判別のtrue
+MService --> Controller : "true" ※仮にfalseが返ってきてもガードしている
+Controller -> IDisplay: "追加画面"renderAdd()
+IDisplay --> User: アラーム追加画面(UI)表示
 
+User -> UI: "保存ボタン" 押下
+UI -> Controller: onButtonClicked(type: ButtonType): void
+note right
+case Buttons.SAVE
+end note
+Controller -> Controller: getSelectedTime(): AlarmTime
+note right
+ユーザー操作で選択された「時間・分」を取得する
+end note
+Controller -> MService: saveAlarm(time: AlarmTime): Result<void, AlarmViolationType>
+MService -> Alarm: ①アラーム生成 static createAlarm(time: AlarmTime): Alarm
+MService -> List: ②アラーム追加　addAlarm(alarm: Alarm): Result<void, AlarmViolationType>
+note right
+アラーム保存処理の結果をResultで返す処理
+end note
+List -> List: ❶件数チェック"isAlarmSetLimit()" と ❷重複チェック"isAlarmDuplicate(alarm.getTime())"
+
+alt 異なる時刻設定時(OKケース) "true"
+List --> MService: "true"
+note right
+※「alarms: Alarm[] = []」箱へ追加する
+end note
+MService -> Data: saveAll(alarms: Alarm[])
+' 現在、初期アラームONでは反応しない
+' MService -> Scheduler: startMonitoring(alarm: Alarm, callback: (alarm: Alarm) => void)
+Data -> LocalStorage: saveAlarmData(key: string, data: string)
+note right
+変換と保存
+end note
+MService --> Controller: "true"
+Controller -> IDisplay: "画面更新"renderList(alarms: Alarm[], selectedIds: Set<string>): void
+Controller -> Controller: "状態更新"updateButtonState(): void
+IDisplay --> User: 状態・画面更新後の表示
+else 同時刻設定時 "false"
+List -> LimitViolation: ❸メッセージは無し(UI制御している)
+List -> DuplicateViolation: ❹メッセージ「同時刻の設定はできません(既にその時刻は設定されています)」(UI)表示
+note left
+※falseの場合、どちらか(上から処理される)
+end note
+List --> MService: "false"
+MService --> Controller: "false"
+Controller -> IDisplay: "警告画面"renderRule(message: string) ※同時刻不可表示のみ。件数制限はUIで制御しているのでメッセージは表示しない。
+IDisplay --> User: メッセージ「同時刻の設定はできません(既にその時刻は設定されています)」(UI)表示
 end
 
-group 削除フロー
+== 削除フロー ==
 
-User -> "UI(Button)":①"削除ボタン" 押下
-"UI(Button)" -> DisplayControl: ②"削除ボタン" 押されたよ
-DisplayControl -> DataManager: ③onDeleteButtonClicked(alarm: Alarm)
-DataManager -> LocalStorageManager: ④deleteAlarmData(alarm: Alarm)
-LocalStorageManager -> IDisplay: ⑤"画面更新"renderAlarm(alarms: Alarm[])
+Controller -> Controller: setupCallBack(): void
+note left
+アプリ起動時にコールバック関数を登録
+end note
+Controller -> MService: onAlarmRemoved(listener: AlarmRemovedListener): void
+note left
+実際のアラーム削除時のコールバック関数を登録
+end note
+MService -> List: onRemoved(listener: AlarmRemovedListener): void
+note left
+削除されたら呼ばれる関数を登録する(stopAlarmMonitoring(id)が呼ばれる)
+end note
+User -> UI: "削除ボタン" 押下
+UI -> Controller: onButtonClicked(type: ButtonType): void
+note right
+case Buttons.DELETE
+end note
+Controller -> Controller: getSelectedIds(): string[]
+note right
+重複しないように Set でIDを管理し、それを配列として取得する処理
+end note
+Controller -> MService: deleteMany(ids: string[]): void
+note right
+①その配列の中身を一つずつループし、削除していく
+②最後に保存する
+end note
+MService -> List: ①remove(id :string)
+note right
+❶削除処理を行う
+❷削除された事を通知する"notifyRemoved(id: string): void"
+end note
+List --> Controller: コールバックで登録していた処理が呼ばれる
+note right
+❸アプリ起動時に登録されていた関数を呼ぶ(コールバック)
+end note
+Controller -> MService: this.executionService.stopAlarmMonitoring(id)
+MService -> Scheduler: stopMonitoring(id: string): void
+Scheduler -> Scheduler: clearTimeout()
+MService -> Data: ②saveAll(alarms: Alarm[]): void
+' alt isOn() "アラームON"
+' MService -> Scheduler: stopMonitoring(alarm: Alarm)
+' else isStop() "アラームOFF"
+' MService -> Scheduler: -
+' end
+Data -> LocalStorage: saveAlarmData(key: string, data: string): void
+note right
+変換と保存
+end note
+Controller -> Controller: 選択を解除
+Controller -> IDisplay: "画面更新"renderList(alarms: Alarm[], selectedIds: Set<string>): void
+Controller -> Controller: "状態更新"updateButtonState(): void
 
+== 停止フロー ==
+
+User -> UI: "停止ボタン" 押下
+note right
+時刻になるとモーダルが表示され、「停止ボタン」押下
+end note
+UI -> Controller: onStop()
+Controller -> EService: stopAlarm(): void 
+EService -> Sound: stopSound(): void
+note left
+音の再生を止める
+end note
+EService -> Alarm: stopRinging(): void
+note left
+状態を"停止"に変える
+end note
+Controller -> Controller: renderCloseAlertModal(): void
+note right
+モーダルを閉じる
+end note
+
+== ON/OFF切替フロー ==
+
+User -> UI: "ON/OFF切替ボタン" 押下
+UI -> Controller: onToggleClicked(id: string, isOn: boolean): void
+Controller -> MService: findById(id: string): Alarm | undefined
+MService -> List: findById(id: string): Alarm | undefined
+note left
+idを見つける処理
+end note
+Controller -> MService: toggleAlarm(id: string): void
+MService -> Alarm: toggleOnOff()
+note left
+状態を変更する
+end note
+Controller -> Controller: onToggleChanged(alarm: Alarm, isOn: boolean): void
+note right
+アラームの状態に応じて、監視開始・停止を処理する
+end note
+alt 有効状態
+Controller -> EService: ❶startAlarmMonitoring(alarm: Alarm): void
+else 無効状態
+Controller -> EService: ❷stopAlarmMonitoring(id: string): void
 end
+Controller -> IDisplay: "画面更新"renderList(alarms: Alarm[], selectedIds: Set<string>): void
 
-group 停止フロー
+== 鳴動フロー ==
 
-User -> "UI(Button)": ①"停止ボタン" 押下
-"UI(Button)" -> DisplayControl: ②"停止ボタン"押されたよ
-DisplayControl -> triggerService: ③onStopButtonClicked(alarm: Alarm)
-triggerService -> SoundPlayer: ④stopAlarm(alarm: Alarm)
-SoundPlayer --> SoundPlayer: ⑤stopSound()
-triggerService -> Dialog: ④hideDialog()
-Dialog --> Dialog: ⑤hideDialogBox()
-Dialog -> IDisplay: ⑥"画面更新"renderAlarm(alarms: Alarm[])
+Controller -> Controller: setupCallBack(): void
+note left
+アプリ起動時にコールバック関数を登録
+end note
+Controller -> EService: timeReached(listener: TimeReachedListener): void
+note left
+実際の時間到達のコールバック関数を登録
+end note
+User -> UI: "ON/OFF切替ボタン" 押下
+UI -> Controller: onToggleClicked(id: string, isOn: boolean): void
+Controller -> EService: ①startAlarmMonitoring(alarm: Alarm): void "アラーム監視の開始指示"
+EService -> Scheduler: ②startMonitoring(alarm: Alarm, callback: CallBackMold): void "アラーム監視の開始
+Scheduler -> Scheduler: ③setTimeOut
+Scheduler --> EService: ④時間到達のコールバック
+EService -> EService: ⑤handleTimeReached(alarm: Alarm): void
+EService -> Alarm: ⑥startRinging(): void 状態更新(鳴動)
+EService -> Sound: ⑦startSound() "鳴動開始
+EService --> Controller: ⑧timeReached(listener: TimeReachedListener): void モーダル表示指示の開始
+Controller -> IDisplay: ⑨renderOpenAlertModal(props: { title: string; onStop: () => void }): void "画面更新"
 
+== 編集フロー ==
+
+User -> UI: "編集ボタン" 押下
+UI -> Controller: onButtonClicked(type: ButtonType): void
+note right
+case Buttons.EDIT
+end note
+Controller -> Controller: getSelectedId(): string
+Controller -> MService: findById(id: string): Alarm | undefined
+MService -> List: findById(id: string): Alarm | undefined
+note left
+idを見つける処理
+end note
+Controller -> IDisplay: renderEdit(alarm: Alarm): void
+note left
+①そのアラームの時間・分を取得する
+②モーダルを表示する
+end note
+User -> UI: "保存ボタン" 押下
+UI -> Controller: onButtonClicked(type: ButtonType): void
+note right
+case Buttons.SAVE
+end note
+Controller -> Controller: getSelectedTime(): AlarmTime
+note right
+ユーザー操作で選択された「時間・分」を取得する
+end note
+Controller -> MService: editAlarm(id: string, time: AlarmTime): Result<void, AlarmViolationType>
+MService -> List: ①editAlarm(id: string, time: AlarmTime): Result<void, AlarmViolationType>
+List -> Alarm: ❶選択中のidと既にあるアラームが異なる & アラーム時刻が重複している かを確認する
+note left
+❶の条件なら、falseを返す
+end note
+alt 異なる時刻設定時(OKケース) "true"
+List -> Alarm: ❷中身を書き換える "updateTime(time: AlarmTime): void"
+note left
+※trueの場合
+end note
+List --> MService: "true"
+MService -> Data: saveAll(alarms: Alarm[])
+' 現在、初期アラームONでは反応しない
+' MService -> Scheduler: startMonitoring(alarm: Alarm, callback: (alarm: Alarm) => void)
+Data -> LocalStorage: saveAlarmData(key: string, data: string)
+note right
+変換と保存
+end note
+MService --> Controller: "true"
+Controller -> IDisplay: "画面更新"renderList(alarms: Alarm[], selectedIds: Set<string>): void
+Controller -> Controller: "状態更新"updateButtonState(): void
+IDisplay --> User: 状態・画面更新後の表示
+else 同時刻設定時 "false"
+List -> DuplicateViolation: ❸メッセージ「同時刻の設定はできません(既にその時刻は設定されています)」(UI)表示
+note left
+※falseの場合、DuplicateAlarmTimeViolation
+end note
+List --> MService: "false"
+MService --> Controller: "false"
+Controller -> IDisplay: "警告画面"renderRule(message: string)
+IDisplay --> User: メッセージ「同時刻の設定はできません(既にその時刻は設定されています)」(UI)表示
 end
+' MService -> Data: saveAll(alarms: Alarm[])
+' Data -> LocalStorage: saveAlarmData(alarms: Alarm[])
 
-group ON/OFF切替フロー
+== 起動時処理「ローカルストレージのデータ不整合時は初期化」と「過去時刻の未処理アラームは通知」 ==
 
-User -> "UI(Button)": ①"ON/OFF切替ボタン" 押下
-"UI(Button)" -> DisplayControl: ②"ON/OFF切替ボタン"押されたよ
-DisplayControl --> DisplayControl: ③onToggleButtonClicked()
-DisplayControl -> Alarm: ④"isOn: boolean"取得
-Alarm -> DisplayControl: ⑤toggleOnOff()
-DisplayControl -> IDisplay: ⑥"画面更新"renderAlarm(alarms: Alarm[])
+' User -> UI: アプリ起動
+' UI -> Controller: init()
+' Controller -> Service: initialLoad()
+' Service -> Data: loadAll()
 
-end
+' alt データ正常
+' Service -> Data: Alarm[] を返す
+' else データ不整合
+' Service -> Data: [] を返す（初期化）
+' end
 
-group 鳴動フロー
+' ' ループ
+' alt 過去時刻
+' Service -> Service: checkMissedAlarms() "通知も表示
+' ' missed
+' else 未来時刻
+' Service -> Scheduler: startMonitoring(alarm: Alarm, callback: (alarm: Alarm) => void) "アラーム監視の開始
+' ' upcoming
+' end
 
-TimeScheduler -> triggerService: ①monitorAlarmTime(alarm: Alarm): void
-triggerService -> SoundPlayer: ②startAlarm(alarm: Alarm)
-SoundPlayer --> SoundPlayer: ③startSound(sound: Sound)
-triggerService -> Dialog: ②showDialog()
-Dialog --> Dialog: ③showDialogBox(alarm: Alarm)
-Dialog -> IDisplay: ④"画面更新"renderDialog(alarm: Alarm)
-
-end
-
+' ' Service → { missed, upcoming } を返す　どっちか
+' ' ループ
+' UI -> IDisplay: renderMissedAlarm() "未処理アラームの通知
 
 @enduml
