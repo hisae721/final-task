@@ -290,3 +290,52 @@
     background-color: var(--color-main);
     color: var(--color-text-base);
 }
+
+/* ─── モーダル(時間到達時) ─── */
+/* CSS に追加してください */
+
+.alarm-alert-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.alarm-alert-modal {
+    background: white;
+    border: black solid 2px;
+    border-radius: 10px;
+    padding: 60px 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 32px;
+    min-width: 320px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+.alarm-alert-modal-title {
+    color: #5ee0c5;
+    font-size: 1.8rem;
+    font-weight: bold;
+    margin: 0;
+}
+
+.alarm-alert-modal-stop-btn {
+    background: #5ee0c5;
+    color: white;
+    border: none;
+    border-radius: 15px;
+    padding: 14px 48px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.alarm-alert-modal-stop-btn:hover {
+    background: #3ecdb0;
+}
