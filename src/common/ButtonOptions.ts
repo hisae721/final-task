@@ -1,4 +1,4 @@
-import { ButtonClickHandler } from "./Button";
+import { type ButtonClickHandler } from "./Button";
 
 /**
  * ボタンを作るときに指定する設定

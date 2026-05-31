@@ -1,5 +1,5 @@
 
-import { ButtonOptions } from "./ButtonOptions";
+import { type ButtonOptions } from "./ButtonOptions";
 
 export type ButtonClickHandler = (event: MouseEvent) => void;
 
