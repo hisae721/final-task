@@ -10,28 +10,30 @@ export type AlarmDTO = {
     state: AlarmState;
 };
 
+// 名前空間オブジェクト
 /**
  * Alarm → DTO（保存用）のメソッド
  * @param alarm 
- * @returns 
+ * @returns AlarmDTO
  */
-export function toDTO(alarm: Alarm): AlarmDTO {
-    const time = alarm.getTime();
+export const AlarmMapper = {
+    toDTO(alarm: Alarm): AlarmDTO {
+        const time = alarm.getTime();
+        return {
+            id: alarm.getId(),
+            hour: time.hour,
+            minute: time.minute,
+            state: alarm.getState(),
+        };
+    },
 
-    return {
-        id: alarm.getId(),
-        hour: time.hour,
-        minute: time.minute,
-        state: alarm.getState(),
-    };
-}
-
-/**
- * DTO → Alarm（復元）のメソッド
- * @param dto 
- * @returns 
- */
-export function fromDTO(dto: AlarmDTO): Alarm {
-    const time = new AlarmTime(dto.hour, dto.minute);
-    return new Alarm(time, dto.id, dto.state);
-}
+    /**
+     * DTO → Alarm（復元）のメソッド
+     * @param dto 
+     * @returns Alarm
+     */
+    fromDTO(dto: AlarmDTO): Alarm {
+        const time = new AlarmTime(dto.hour, dto.minute);
+        return new Alarm(time, dto.id, dto.state);
+    },
+} as const;

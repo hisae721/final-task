@@ -23,14 +23,26 @@ export class AlarmTime {
         return this.hour === other.hour && this.minute === other.minute;
     }
 
+    /**
+     * 時間を取得する
+     * @returns number
+     */
     public getHour(): number {
         return this.hour;
     }
 
+    /**
+     * 分を取得する
+     * @returns number
+     */
     public getMinute(): number {
         return this.minute;
     }
 
+    /**
+     * このクラスが持つ hour と minute を、Dateオブジェクトに変換するメソッド
+     * @returns Date
+     */
     private toDate(): Date {
         const date = new Date();       // 今日の日付を取得
         date.setHours(this.hour);      // 時を上書き
@@ -39,11 +51,18 @@ export class AlarmTime {
         date.setMilliseconds(0);       // ms はリセット
         return date;
     }
+    // ===================================================
+    // 今日の日付: 2026-06-01  15: 32: 45.123
+    //            ↓ 時・分・秒・msを上書き
+    // 結果: 2026-06-01[this.hour]: [this.minute]:00.000
+    // ===================================================
 
-    // 「現在時刻との差」をミリ秒で返す関数
-    public toMillisecondsFromNow(): number {
-        // 今この瞬間を数値で返す
-        const now = Date.now();                        // 現在時刻(ms)
+    /**
+     * 「現在時刻との差」をミリ秒で返す関数
+     * @returns number
+     */
+    // 現在時刻を外から渡す！！→現在時刻が毎回変わるので、テスト時に固定できないのを防ぐ
+    public toMillisecondsFromNow(now: number): number {
         // 標準関数「getTime()」 = Date → number への変換。単位をmsに揃える
         // = 設定アラームの時刻(ms)ということ
         const target = this.toDate().getTime();        // アラーム時刻(ms)
